@@ -1,0 +1,5 @@
+../Core/Src/telemetry.c:20:6:Sensors_Init	1
+../Core/Src/telemetry.c:30:6:Sensors_ReadAll	1
+../Core/Src/telemetry.c:49:6:Telemetry_Send	1
+../Core/Src/telemetry.c:57:5:Threshold_Check	9
+../Core/Src/telemetry.c:107:5:IsUpsideDown	1

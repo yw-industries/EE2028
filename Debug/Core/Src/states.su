@@ -1,0 +1,9 @@
+../Core/Src/states.c:21:6:standby_update	8	static
+../Core/Src/states.c:41:6:standby_singleclick	4	static
+../Core/Src/states.c:45:6:standby_doubleclick	8	static
+../Core/Src/states.c:57:6:battle_update	8	static
+../Core/Src/states.c:75:6:battle_singleclick	8	static
+../Core/Src/states.c:92:6:battle_doubleclick	8	static
+../Core/Src/states.c:105:6:last_update	8	static
+../Core/Src/states.c:133:6:last_singleclick	4	static
+../Core/Src/states.c:137:6:last_doubleclick	8	static
