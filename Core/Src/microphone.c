@@ -69,7 +69,6 @@ HAL_StatusTypeDef Microphone_Init(void)
     hdma_dfsdm.Init.Request =
         DMA_REQUEST_DFSDM1_FLT0;
     
-    volatile uint32_t request_before_init = DMA_REQUEST_DFSDM1_FLT0;
     hdma_dfsdm.Init.Direction =
         DMA_PERIPH_TO_MEMORY;
     hdma_dfsdm.Init.PeriphInc =
@@ -85,26 +84,11 @@ HAL_StatusTypeDef Microphone_Init(void)
 
     HAL_StatusTypeDef dma_status = HAL_DMA_Init(&hdma_dfsdm);
 
-    volatile uint32_t request_after_init =
-    hdma_dfsdm.Init.Request;
 
-    volatile uint32_t debug_request =
-        hdma_dfsdm.Init.Request;
-
-    volatile uint32_t debug_dmamux_address =
-        (uint32_t)hdma_dfsdm.DMAmuxChannel;
-
-    volatile uint32_t debug_dmamux_value =
-        hdma_dfsdm.DMAmuxChannel->CCR;
-
-    
-
-    __NOP();  // Put a breakpoint here
-
-if (dma_status != HAL_OK)
-{
-    return HAL_ERROR;
-}
+    if (dma_status != HAL_OK)
+    {
+        return HAL_ERROR;
+    }
 
     /* Configure DFSDM Filter 0 */
     hfilter.Instance = DFSDM1_Filter0;

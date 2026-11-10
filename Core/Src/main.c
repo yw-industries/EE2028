@@ -123,91 +123,125 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 
 
-// #include <stdint.h>
-// #include <limits.h>
 // #include "microphone.h"
+// #include "uart.h"
+// #include <stdint.h>
 
-// /* Global so DMA can access it */
-// int32_t audio_buffer[AUDIO_BUFFER_SIZE];
+// #define SETTLING_SAMPLES 256
+// #define UART_CHUNK_SAMPLES 128
 
+// static int32_t audio_buffer[AUDIO_BUFFER_SIZE];
+// static int16_t pcm_chunk[UART_CHUNK_SAMPLES];
 
-// /* Useful debugger variables */
-// volatile uint32_t sample_count = 0;
-// volatile int32_t first_sample = 0;
-// volatile uint8_t recording_status = 0;
+// volatile uint32_t recording_ms = 0;
 
-// volatile int32_t audio_min = 0;
-// volatile int32_t audio_max = 0;
-// volatile int32_t audio_peak_to_peak = 0;
-// volatile uint32_t audio_min_index = 0;
+// static void SendAudio(void)
+// {
+    
+//     uint32_t index = SETTLING_SAMPLES;
+
+//     while (index < AUDIO_BUFFER_SIZE)
+//     {
+//         uint16_t count = UART_CHUNK_SAMPLES;
+
+//         if (AUDIO_BUFFER_SIZE - index < count)
+//             count = AUDIO_BUFFER_SIZE - index;
+
+//         for (uint16_t i = 0; i < count; i++)
+//         {
+//             /* Extract signed DFSDM result */
+//             int32_t sample = audio_buffer[index + i] >> 8;
+
+//             /*
+//              * Initial scaling.
+//              * We will calibrate this after listening.
+//              */
+//             sample = sample >> 1;
+
+//             if (sample > 32767)
+//                 sample = 32767;
+
+//             if (sample < -32768)
+//                 sample = -32768;
+
+//             pcm_chunk[i] = (int16_t)sample;
+//         }
+
+//         HAL_UART_Transmit(
+//             &huart1,
+//             (uint8_t *)pcm_chunk,
+//             count * sizeof(int16_t),
+//             HAL_MAX_DELAY
+//         );
+
+//         index += count;
+//     }
+// }
 
 // int main(void)
 // {
-//     HAL_Init();
+//     HAL_Init();
 
-//     if (Microphone_Init() != HAL_OK)
-//     {
-//         recording_status = 1;
+//     UART1_Init();
 
-//         while (1) {}
-//     }
+//     if (Microphone_Init() != HAL_OK)
+//     {
+//         UART_Print("INIT_FAIL\n");
+//         while (1) {}
+//     }
 
-//     if (Microphone_Start(
-//         audio_buffer,
-//         AUDIO_BUFFER_SIZE
-//     ) != HAL_OK)
-//     {
-//         recording_status = 2;
+//     UART_Print("READY\n");
 
-//         while (1) {}
-//     }
+//     uint8_t command;
 
-//     while (1)
-//     {
-//         if (microphone_error)
-//         {
-//             recording_status = 3;
-//             while (1) {}
-//         }
+//     while (1)
+//     {
+//         /* Wait for Python to send R */
+//         if (HAL_UART_Receive(
+//                 &huart1,
+//                 &command,
+//                 1,
+//                 HAL_MAX_DELAY
+//             ) != HAL_OK)
+//         {
+//             continue;
+//         }
 
-//         if (microphone_done)
-//         {
-//             microphone_done = 0;
+//         if (command != 'R')
+//             continue;
 
-//             sample_count = AUDIO_BUFFER_SIZE;
-//             first_sample = audio_buffer[0];
-//             recording_status = 4;
+//         uint32_t start_tick = HAL_GetTick();
 
+//         if (Microphone_Start(
+//                 audio_buffer,
+//                 AUDIO_BUFFER_SIZE
+//             ) != HAL_OK)
+//         {
+//             UART_Print("FAIL\n");
+//             continue;
+//         }
 
-// #define AUDIO_SETTLING_SAMPLES 256
+//         /* Wait for DMA recording completion */
+//         while (!microphone_done && !microphone_error)
+//         {
+//         }
+        
+//         recording_ms = HAL_GetTick() - start_tick;
 
-// int32_t min_value = INT32_MAX;
-// int32_t max_value = INT32_MIN;
+//         if (microphone_error)
+//         {
+//             Microphone_Stop();
+//             UART_Print("FAIL\n");
+//             continue;
+//         }
 
-// for (uint32_t i = AUDIO_SETTLING_SAMPLES;
-//      i < AUDIO_BUFFER_SIZE;
-//      i++)
-// {
-//     int32_t sample = audio_buffer[i] >> 8;
+//         Microphone_Stop();
 
-//     if (sample < min_value)
-//     {
-//         min_value = sample;
-//         audio_min_index = i;
-//     }
+//         /* Send a header before binary audio */
+//         UART_Print("DATA\n");
 
-//     if (sample > max_value)
-//     {
-//         max_value = sample;
-//     }
-// }
+//         SendAudio();
 
-// audio_min = min_value;
-// audio_max = max_value;
-// audio_peak_to_peak = max_value - min_value;
-
-//             /* Recording complete */
-//             while (1) {}
-//         }
-//     }
+//         UART_Print("DONE\n");
+//     }
 // }
