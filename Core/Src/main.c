@@ -123,3 +123,91 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 
 
+// #include <stdint.h>
+// #include <limits.h>
+// #include "microphone.h"
+
+// /* Global so DMA can access it */
+// int32_t audio_buffer[AUDIO_BUFFER_SIZE];
+
+
+// /* Useful debugger variables */
+// volatile uint32_t sample_count = 0;
+// volatile int32_t first_sample = 0;
+// volatile uint8_t recording_status = 0;
+
+// volatile int32_t audio_min = 0;
+// volatile int32_t audio_max = 0;
+// volatile int32_t audio_peak_to_peak = 0;
+// volatile uint32_t audio_min_index = 0;
+
+// int main(void)
+// {
+//     HAL_Init();
+
+//     if (Microphone_Init() != HAL_OK)
+//     {
+//         recording_status = 1;
+
+//         while (1) {}
+//     }
+
+//     if (Microphone_Start(
+//         audio_buffer,
+//         AUDIO_BUFFER_SIZE
+//     ) != HAL_OK)
+//     {
+//         recording_status = 2;
+
+//         while (1) {}
+//     }
+
+//     while (1)
+//     {
+//         if (microphone_error)
+//         {
+//             recording_status = 3;
+//             while (1) {}
+//         }
+
+//         if (microphone_done)
+//         {
+//             microphone_done = 0;
+
+//             sample_count = AUDIO_BUFFER_SIZE;
+//             first_sample = audio_buffer[0];
+//             recording_status = 4;
+
+
+// #define AUDIO_SETTLING_SAMPLES 256
+
+// int32_t min_value = INT32_MAX;
+// int32_t max_value = INT32_MIN;
+
+// for (uint32_t i = AUDIO_SETTLING_SAMPLES;
+//      i < AUDIO_BUFFER_SIZE;
+//      i++)
+// {
+//     int32_t sample = audio_buffer[i] >> 8;
+
+//     if (sample < min_value)
+//     {
+//         min_value = sample;
+//         audio_min_index = i;
+//     }
+
+//     if (sample > max_value)
+//     {
+//         max_value = sample;
+//     }
+// }
+
+// audio_min = min_value;
+// audio_max = max_value;
+// audio_peak_to_peak = max_value - min_value;
+
+//             /* Recording complete */
+//             while (1) {}
+//         }
+//     }
+// }
