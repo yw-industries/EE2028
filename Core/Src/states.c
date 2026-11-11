@@ -8,6 +8,13 @@
 #include "main.h"
 #include "telemetry.h"
 #include "uart.h"
+#include "audio_stream.h"
+#include "ml_inference.h"
+#include "microphone.h"
+#include "uart.h"
+
+#include <stdio.h>
+
 
 char message_print[100];
 
@@ -141,4 +148,107 @@ void last_doubleclick (void) {
 	stateMachine = BATTLE_MODE;
 }
 
+/**************************
+ * SPEECH DETECTOR
+ *************************/
+
+
+static volatile uint8_t listening_enabled = 0;
+
+static int16_t audio_window[AUDIO_WINDOW_SAMPLES];
+
+static uint32_t last_inference_sample = 0;
+
+void SpeechDetector_SetEnabled(uint8_t enabled)
+{
+    if (enabled)
+    {
+        if (!listening_enabled)
+        {
+            AudioStream_Reset();
+
+            if (Microphone_StartContinuous() == HAL_OK)
+            {
+                last_inference_sample = 0;
+                listening_enabled = 1;
+            }
+        }
+    }
+    else
+    {
+        if (listening_enabled)
+        {
+            Microphone_StopContinuous();
+            listening_enabled = 0;
+        }
+    }
+}
+
+uint8_t SpeechDetector_IsEnabled(void)
+{
+    return listening_enabled;
+}
+
+void SpeechDetector_Process(void)
+{
+    if (!listening_enabled)
+        return;
+
+    uint32_t total = AudioStream_GetTotalSamples();
+
+    if (total < AUDIO_WINDOW_SAMPLES)
+        return;
+
+    // Run at most once per 8000 new samples (~500 ms).
+    if (last_inference_sample != 0 &&
+        (total - last_inference_sample) < 8000U)
+    {
+        return;
+    }
+
+    if (AudioStream_GetWindow(
+            audio_window,
+            AUDIO_WINDOW_SAMPLES) != 0)
+    {
+        return;
+    }
+
+    last_inference_sample = total;
+
+}
+
+static uint8_t speech_listening = 0;
+
+void States_EnableSpeechDetection(void)
+{
+    if (speech_listening)
+        return;
+
+    AudioStream_Reset();
+
+    if (Microphone_StartContinuous() == HAL_OK)
+    {
+        speech_listening = 1;
+    }
+}
+
+void States_DisableSpeechDetection(void)
+{
+    if (!speech_listening)
+        return;
+
+    if (Microphone_StopContinuous() == HAL_OK)
+    {
+        speech_listening = 0;
+    }
+}
+
+void States_ProcessSpeechDetection(void)
+{
+    if (!speech_listening)
+        return;
+
+    // Audio preprocessing and inference
+    // will be integrated here.
+}
 

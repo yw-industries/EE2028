@@ -123,361 +123,145 @@
 
 #include "main.h"
 
-#include "microphone.h"
-#include "uart.h"
 #include <stdint.h>
 #include <stdio.h>
 #include "ml_inference.h"
 
+
 #define SETTLING_SAMPLES 256
 #define UART_CHUNK_SAMPLES 128
+
+#define AUDIO_SAMPLE_COUNT 16000
+
+
+
+
+
+DMA_HandleTypeDef hdma_dfsdm;
+
+void SystemClock_Config(void);
+
+#include "microphone.h"
+#include "audio_stream.h"
+#include "uart.h"
+#include "audio_preprocessor.h"
+#include <stdio.h>
 
 static int32_t audio_buffer[AUDIO_BUFFER_SIZE];
 static int16_t pcm_chunk[UART_CHUNK_SAMPLES];
 
-volatile uint32_t inference_ms = 0;
-
-void SystemClock_Config(void);
-
-
-int main(void) {
-    char message[100];
-
+int main(void)
+{
     HAL_Init();
-
     SystemClock_Config();
-    uint32_t clock_source =
-    __HAL_RCC_GET_SYSCLK_SOURCE();
-
-    snprintf(message, sizeof(message),
-         "SYSCLK source: 0x%08lX\r\n",
-         (unsigned long)clock_source);
-
-UART_Print(message);
-
     UART1_Init();
 
-    UART_Print("Starting TFLite Micro...\r\n");
+    char msg[100];
 
-
-snprintf(
-    message,
-    sizeof(message),
-    "SYSCLK: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetSysClockFreq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "HCLK: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetHCLKFreq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "PCLK1: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetPCLK1Freq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "PCLK2: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetPCLK2Freq()
-);
-UART_Print(message);
-
-
-uint32_t start = HAL_GetTick();
-
-HAL_Delay(1000);
-
-uint32_t elapsed = HAL_GetTick() - start;
-
-snprintf(
-    message,
-    sizeof(message),
-    "HAL tick test: %lu ms\r\n",
-    (unsigned long)elapsed
-);
-
-UART_Print(message);
-
-
-    UART_Print("Starting TFLite Micro...\r\n");
-    int ml_status = ML_Init();
-    // SystemClock_Config();
-
-    snprintf(
-        message,
-        sizeof(message),
-        "HCLK: %lu Hz\r\n",
-        (unsigned long)HAL_RCC_GetHCLKFreq()
-    );
-
-    
-
-
-    snprintf(
-        message,
-        sizeof(message),
-        "ML_Init status: %d\r\n",
-        ml_status
-    );
-
-    UART_Print(message);
-    if (ml_status == 0)
+    // Initialize both ML models.
+    if (AudioPreprocessor_Init() != 0)
     {
-        static int8_t test_features[1960] = {0};
-        int8_t scores[4] = {0};
+        UART_Print("Preprocessor init failed\r\n");
+        while (1) {}
+    }
 
-        uint32_t start_tick = HAL_GetTick();
+    if (ML_Init() != 0)
+    {
+        UART_Print("Classifier init failed\r\n");
+        while (1) {}
+    }
 
-        int result = ML_RunInference(
-            test_features,
-            scores
-        );
+    UART_Print("ML models initialized\r\n");
 
-        inference_ms = HAL_GetTick() - start_tick;
+    // Initialize continuous microphone recording.
+    if (Microphone_Init() != HAL_OK)
+    {
+        UART_Print("Microphone init failed\r\n");
+        while (1) {}
+    }
 
-        snprintf(
-            message,
-            sizeof(message),
-            "Inference time: %lu ms\r\n",
-            (unsigned long)inference_ms
-        );
+    if (Microphone_Enter() != HAL_OK)
+    {
+        UART_Print("Microphone start failed\r\n");
+        while (1) {}
+    }
 
-        UART_Print(message);
+    UART_Print("Continuous microphone active\r\n");
 
-        snprintf(
-            message,
-            sizeof(message),
-            "Inference status: %d\r\n",
-            result
-        );
+    static int16_t audio_window[16000];
+    static int8_t features[1960];
 
-        UART_Print(message);
+    const char *labels[4] = {
+        "SILENCE",
+        "UNKNOWN",
+        "YES",
+        "NO"
+    };
 
-        if (result == 0)
+    uint32_t last_inference = HAL_GetTick();
+
+    while (1)
+    {
+        Microphone_Update();
+
+        if (HAL_GetTick() - last_inference >= 1000U)
         {
-            snprintf(
-                message,
-                sizeof(message),
-                "Scores: %d %d %d %d\r\n",
-                scores[0],
-                scores[1],
-                scores[2],
-                scores[3]
-            );
+            last_inference = HAL_GetTick();
 
-            UART_Print(message);
+            // Get the most recent second of audio.
+            if (AudioStream_GetWindow(
+                    audio_window, 16000) != 0)
+            {
+                continue;
+            }
 
-            const char *labels[4] = {
-                "SILENCE",
-                "UNKNOWN",
-                "YES",
-                "NO"
-            };
+            // Generate Google's audio features.
+            int pre_status =
+                AudioPreprocessor_Process(
+                    audio_window, features
+                );
 
+            if (pre_status != 0)
+            {
+                UART_Print("Preprocessing failed\r\n");
+                continue;
+            }
+
+            // Run the speech classifier.
+            int8_t scores[4] = {0};
+
+            int ml_status =
+                ML_RunInference(features, scores);
+
+            if (ml_status != 0)
+            {
+                UART_Print("Inference failed\r\n");
+                continue;
+            }
+
+            // Find the highest scoring class.
             int best = 0;
 
             for (int i = 1; i < 4; i++)
             {
                 if (scores[i] > scores[best])
+                {
                     best = i;
+                }
             }
 
             snprintf(
-                message,
-                sizeof(message),
-                "Prediction: %s\r\n",
-                labels[best]
+                msg,
+                sizeof(msg),
+                "Prediction: %s | Scores: %d %d %d %d\r\n",
+                labels[best],
+                (int)scores[0],
+                (int)scores[1],
+                (int)scores[2],
+                (int)scores[3]
             );
 
-            UART_Print(message);
+            UART_Print(msg);
         }
     }
-
 }
-
-
-
-void SystemClock_Config(void)
-{
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-    /* Configure voltage scaling for high-frequency operation */
-    __HAL_RCC_PWR_CLK_ENABLE();
-
-    if (HAL_PWREx_ControlVoltageScaling(
-            PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-    {
-        while (1) {}
-    }
-
-    /* Configure MSI and PLL */
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
-    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-    RCC_OscInitStruct.MSICalibrationValue =
-        RCC_MSICALIBRATION_DEFAULT;
-    RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
-
-    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
-    RCC_OscInitStruct.PLL.PLLM = 1;
-    RCC_OscInitStruct.PLL.PLLN = 40;
-    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
-    RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
-    RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
-        while (1) {}
-    }
-
-    /* Configure system clock */
-    RCC_ClkInitStruct.ClockType =
-        RCC_CLOCKTYPE_SYSCLK |
-        RCC_CLOCKTYPE_HCLK |
-        RCC_CLOCKTYPE_PCLK1 |
-        RCC_CLOCKTYPE_PCLK2;
-
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-    if (HAL_RCC_ClockConfig(
-            &RCC_ClkInitStruct,
-            FLASH_LATENCY_4) != HAL_OK)
-    {
-        while (1) {}
-    }
-}
-
-
-
-static void SendAudio(void)
-{
-    
-    uint32_t index = SETTLING_SAMPLES;
-
-    while (index < AUDIO_BUFFER_SIZE)
-    {
-        uint16_t count = UART_CHUNK_SAMPLES;
-
-        if (AUDIO_BUFFER_SIZE - index < count)
-            count = AUDIO_BUFFER_SIZE - index;
-
-        for (uint16_t i = 0; i < count; i++)
-        {
-            /* Extract signed DFSDM result */
-            int32_t sample = audio_buffer[index + i] >> 8;
-
-            /*
-             * Initial scaling.
-             * We will calibrate this after listening.
-             */
-            sample = sample >> 1;
-
-            if (sample > 32767)
-                sample = 32767;
-
-            if (sample < -32768)
-                sample = -32768;
-
-            pcm_chunk[i] = (int16_t)sample;
-        }
-
-        HAL_UART_Transmit(
-            &huart1,
-            (uint8_t *)pcm_chunk,
-            count * sizeof(int16_t),
-            HAL_MAX_DELAY
-        );
-
-        index += count;
-    }
-}
-
-// int main(void)
-// {
-//     HAL_Init();
-
-//     UART1_Init();
-//     char message[64];
-
-//     snprintf(message, sizeof(message),
-//             "ML C++ test: %d\r\n",
-//             ML_Test());
-
-//     UART_Print(message);
-
-//     if (Microphone_Init() != HAL_OK)
-//     {
-//         UART_Print("INIT_FAIL\n");
-//         while (1) {}
-//     }
-
-//     UART_Print("READY\n");
-
-//     uint8_t command;
-
-//     while (1)
-//     {
-//         /* Wait for Python to send R */
-//         if (HAL_UART_Receive(
-//                 &huart1,
-//                 &command,
-//                 1,
-//                 HAL_MAX_DELAY
-//             ) != HAL_OK)
-//         {
-//             continue;
-//         }
-
-//         if (command != 'R')
-//             continue;
-
-//         uint32_t start_tick = HAL_GetTick();
-
-//         if (Microphone_Start(
-//                 audio_buffer,
-//                 AUDIO_BUFFER_SIZE
-//             ) != HAL_OK)
-//         {
-//             UART_Print("FAIL\n");
-//             continue;
-//         }
-
-//         /* Wait for DMA recording completion */
-//         while (!microphone_done && !microphone_error)
-//         {
-//         }
-        
-//         recording_ms = HAL_GetTick() - start_tick;
-
-//         if (microphone_error)
-//         {
-//             Microphone_Stop();
-//             UART_Print("FAIL\n");
-//             continue;
-//         }
-
-//         Microphone_Stop();
-
-//         /* Send a header before binary audio */
-//         UART_Print("DATA\n");
-
-//         SendAudio();
-
-//         UART_Print("DONE\n");
-//     }
-// }
-

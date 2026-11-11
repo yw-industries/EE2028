@@ -25,7 +25,23 @@
       "-<tensorflow/lite/**/*benchmark*>",
       "-<tensorflow/lite/**/examples/**>",
       "-<signal/**>",
-      "-<examples/**>"
+      "-<examples/**>", 
+
+
+    "+<signal/micro/kernels/window.cc>",
+    "+<signal/micro/kernels/fft_auto_scale_kernel.cc>",
+    "+<signal/micro/kernels/fft_auto_scale_common.cc>",
+    "+<signal/micro/kernels/rfft.cc>",
+    "+<signal/micro/kernels/energy.cc>",
+    "+<signal/micro/kernels/filter_bank.cc>",
+    "+<signal/micro/kernels/filter_bank_square_root.cc>",
+    "+<signal/micro/kernels/filter_bank_square_root_common.cc>",
+    "+<signal/micro/kernels/filter_bank_spectral_subtraction.cc>",
+    "+<signal/micro/kernels/pcan.cc>",
+    "+<signal/micro/kernels/filter_bank_log.cc>",
+    "+<signal/src/**>",
+    "-<signal/src/**/*test*>"
+
     ],
     "flags": [
       "-std=gnu++17"

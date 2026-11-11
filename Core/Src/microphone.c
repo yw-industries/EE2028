@@ -1,12 +1,18 @@
-
 #include "microphone.h"
+#include "audio_stream.h"
 
 static DFSDM_Channel_HandleTypeDef hchannel;
 static DFSDM_Filter_HandleTypeDef hfilter;
-static DMA_HandleTypeDef hdma_dfsdm;
+DMA_HandleTypeDef hdma_dfsdm;
 
 volatile uint8_t microphone_done = 0;
 volatile uint8_t microphone_error = 0;
+
+int32_t audio_dma_buffer[AUDIO_DMA_BUFFER_SIZE];
+
+volatile uint8_t audio_half_ready = 0;
+volatile uint8_t audio_full_ready = 0;
+
 
 HAL_StatusTypeDef Microphone_Init(void)
 {
@@ -33,7 +39,7 @@ HAL_StatusTypeDef Microphone_Init(void)
     hchannel.Init.OutputClock.Activation = ENABLE;
     hchannel.Init.OutputClock.Selection =
         DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-    hchannel.Init.OutputClock.Divider = 2;
+    hchannel.Init.OutputClock.Divider = 78;
 
     hchannel.Init.Input.Multiplexer =
         DFSDM_CHANNEL_EXTERNAL_INPUTS;
@@ -79,7 +85,7 @@ HAL_StatusTypeDef Microphone_Init(void)
         DMA_PDATAALIGN_WORD;
     hdma_dfsdm.Init.MemDataAlignment =
         DMA_MDATAALIGN_WORD;
-    hdma_dfsdm.Init.Mode = DMA_NORMAL;
+    hdma_dfsdm.Init.Mode = DMA_CIRCULAR;
     hdma_dfsdm.Init.Priority = DMA_PRIORITY_HIGH;
 
     HAL_StatusTypeDef dma_status = HAL_DMA_Init(&hdma_dfsdm);
@@ -109,7 +115,7 @@ HAL_StatusTypeDef Microphone_Init(void)
 
     hfilter.Init.FilterParam.SincOrder =
         DFSDM_FILTER_SINC3_ORDER;
-    hfilter.Init.FilterParam.Oversampling = 64;
+    hfilter.Init.FilterParam.Oversampling = 20;
     hfilter.Init.FilterParam.IntOversampling = 1;
 
     if (HAL_DFSDM_FilterInit(&hfilter) != HAL_OK)
@@ -132,6 +138,18 @@ HAL_StatusTypeDef Microphone_Init(void)
     return HAL_OK;
 }
 
+HAL_StatusTypeDef Microphone_StartContinuous(void)
+{
+    audio_half_ready = 0;
+    audio_full_ready = 0;
+
+    return HAL_DFSDM_FilterRegularStart_DMA(
+        &hfilter,
+        audio_dma_buffer,
+        AUDIO_DMA_BUFFER_SIZE
+    );
+}
+
 HAL_StatusTypeDef Microphone_Start(
     int32_t *buffer,
     uint32_t length)
@@ -142,6 +160,11 @@ HAL_StatusTypeDef Microphone_Start(
     return HAL_DFSDM_FilterRegularStart_DMA(
         &hfilter, buffer, length
     );
+}
+
+HAL_StatusTypeDef Microphone_StopContinuous(void)
+{
+    return HAL_DFSDM_FilterRegularStop_DMA(&hfilter);
 }
 
 HAL_StatusTypeDef Microphone_Stop(void)
@@ -155,18 +178,80 @@ void DMA1_Channel4_IRQHandler(void)
     HAL_DMA_IRQHandler(&hdma_dfsdm);
 }
 
-/* Called when the recording buffer is full */
+
+void HAL_DFSDM_FilterRegConvHalfCpltCallback(
+    DFSDM_Filter_HandleTypeDef *filter)
+{
+    if (filter == &hfilter)
+    {
+        AudioStream_PushRaw(
+            &audio_dma_buffer[0],
+            AUDIO_DMA_HALF_SIZE
+        );
+    }
+}
+
 void HAL_DFSDM_FilterRegConvCpltCallback(
     DFSDM_Filter_HandleTypeDef *filter)
 {
     if (filter == &hfilter)
-        microphone_done = 1;
+    {
+        AudioStream_PushRaw(
+            &audio_dma_buffer[AUDIO_DMA_HALF_SIZE],
+            AUDIO_DMA_HALF_SIZE
+        );
+    }
 }
-
 /* Called on a DFSDM */
 void HAL_DFSDM_FilterErrorCallback(
     DFSDM_Filter_HandleTypeDef *filter)
 {
     if (filter == &hfilter)
         microphone_error = 1;
+}
+
+
+static uint8_t microphone_active = 0;
+
+HAL_StatusTypeDef Microphone_Enter(void)
+{
+    if (microphone_active)
+        return HAL_OK;
+
+    AudioStream_Reset();
+
+    HAL_StatusTypeDef status =
+        Microphone_StartContinuous();
+
+    if (status == HAL_OK)
+    {
+        microphone_active = 1;
+    }
+
+    return status;
+}
+
+void Microphone_Update(void)
+{
+    if (!microphone_active)
+        return;
+
+    // DMA transfers audio automatically.
+    // No polling or restarting is required here.
+}
+
+HAL_StatusTypeDef Microphone_Exit(void)
+{
+    if (!microphone_active)
+        return HAL_OK;
+
+    HAL_StatusTypeDef status =
+        Microphone_StopContinuous();
+
+    if (status == HAL_OK)
+    {
+        microphone_active = 0;
+    }
+
+    return status;
 }
