@@ -8,17 +8,34 @@
 
 #include <stdint.h>
 #include <stdio.h>
+
 #include "ml_inference.h"
+#include "audio_preprocessor.h"
+#include "microphone.h"
 #include "uart.h"
 #include "telemetry.h"
 #include "states.h"
 
-volatile StateMachine stateMachine = STANDBY_MODE;
+#define DOUBLE_CLICK_MS 500U
+#define DEBOUNCE_MS 40U
 
+volatile StateMachine stateMachine = STANDBY_MODE;
 volatile uint32_t curr_time = 0;
-static volatile uint32_t last_pressed = 0;
+
+/* Shared between interrupt and main loop */
+static volatile uint32_t first_click_time = 0;
+static volatile uint32_t last_irq_time = 0;
+
+static volatile uint8_t click_pending = 0;
+static volatile uint8_t doubleclick_pending = 0;
+static volatile uint8_t button_initialized = 0;
 
 void SystemClock_Config(void);
+void singleclick_check(void);
+
+/* ============================================
+   MAIN
+   ============================================ */
 
 int main(void)
 {
@@ -34,7 +51,7 @@ int main(void)
     BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
-    // Initialize both ML interpreters once.
+    /* Initialize ML models once */
     if (AudioPreprocessor_Init() != 0)
     {
         UART_Print("Preprocessor init failed\r\n");
@@ -47,7 +64,7 @@ int main(void)
         while (1) {}
     }
 
-    // Configure microphone, but don't start it.
+    /* Configure microphone, but do not start */
     if (Microphone_Init() != HAL_OK)
     {
         UART_Print("Microphone init failed\r\n");
@@ -74,6 +91,7 @@ int main(void)
 
             case THE_LAST_OF_EE2028:
                 last_update();
+                SpeechRecognition_Update();
                 break;
 
             default:
@@ -82,6 +100,114 @@ int main(void)
     }
 }
 
+/* ============================================
+   BUTTON INTERRUPT
+   ============================================ */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin != BUTTON_EXTI13_Pin)
+        return;
+
+    uint32_t now = HAL_GetTick();
+
+    /* Reject button bounce */
+    if (button_initialized &&
+        (uint32_t)(now - last_irq_time) < DEBOUNCE_MS)
+    {
+        return;
+    }
+
+    button_initialized = 1;
+    last_irq_time = now;
+
+    /* Detect second click */
+    if (click_pending &&
+        (uint32_t)(now - first_click_time) <= DOUBLE_CLICK_MS)
+    {
+        click_pending = 0;
+        doubleclick_pending = 1;
+    }
+    else
+    {
+        first_click_time = now;
+        click_pending = 1;
+    }
+}
+
+/* ============================================
+   BUTTON EVENT PROCESSING
+   ============================================ */
+
+void singleclick_check(void)
+{
+    uint8_t event = 0;
+    uint32_t now = HAL_GetTick();
+
+    /*
+     * Atomically claim a pending event.
+     * The critical section is very short.
+     */
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+
+    if (doubleclick_pending)
+    {
+        doubleclick_pending = 0;
+        event = 2;
+    }
+    else if (click_pending &&
+             (uint32_t)(now - first_click_time)
+                 >= DOUBLE_CLICK_MS)
+    {
+        click_pending = 0;
+        event = 1;
+    }
+
+    __set_PRIMASK(primask);
+
+    /* Execute state functions outside the interrupt */
+    if (event == 1)
+    {
+        switch (stateMachine)
+        {
+            case STANDBY_MODE:
+                standby_singleclick();
+                break;
+
+            case BATTLE_MODE:
+                battle_singleclick();
+                break;
+
+            case THE_LAST_OF_EE2028:
+                last_singleclick();
+                break;
+
+            default:
+                break;
+        }
+    }
+    else if (event == 2)
+    {
+        switch (stateMachine)
+        {
+            case STANDBY_MODE:
+                standby_doubleclick();
+                break;
+
+            case BATTLE_MODE:
+                battle_doubleclick();
+                break;
+
+            case THE_LAST_OF_EE2028:
+                last_doubleclick();
+                break;
+
+            default:
+                break;
+        }
+    }
+}
 
 void SystemClock_Config(void)
 {
@@ -136,9 +262,6 @@ void SystemClock_Config(void)
         while (1) {}
     }
 }
-
-
-
 
 /* ============================================================================
  * WIFI TEST PROGRAM (commented out)

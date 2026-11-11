@@ -38,6 +38,10 @@ void SpeechDetector_SetEnabled(uint8_t enabled);
 uint8_t SpeechDetector_IsEnabled(void);
 void SpeechDetector_Process(void);
 
+void SpeechRecognition_Enter(void);
+void SpeechRecognition_Update(void);
+void SpeechRecognition_Exit(void);
+
 void States_EnableSpeechDetection(void);
 void States_DisableSpeechDetection(void);
 void States_ProcessSpeechDetection(void);

@@ -301,5 +301,3 @@ void SpeechRecognition_Exit(void)
         UART_Print("Speech recognition stop failed\r\n");
     }
 }
- 
-
