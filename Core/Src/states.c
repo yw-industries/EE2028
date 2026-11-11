@@ -303,10 +303,3 @@ void SpeechRecognition_Exit(void)
 }
  
 
-static volatile uint8_t listening_enabled = 0;
-
-static int16_t audio_window[AUDIO_WINDOW_SAMPLES];
-
-static uint32_t last_inference_sample = 0;
-
-static uint8_t speech_listening = 0;

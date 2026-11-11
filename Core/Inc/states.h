@@ -44,4 +44,3 @@ void States_ProcessSpeechDetection(void);
 
 
 #endif 
-/* INC_STATES_H_ */

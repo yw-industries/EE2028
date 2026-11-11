@@ -18,6 +18,8 @@ volatile StateMachine stateMachine = STANDBY_MODE;
 volatile uint32_t curr_time = 0;
 static volatile uint32_t last_pressed = 0;
 
+void SystemClock_Config(void);
+
 int main(void)
 {
     HAL_Init();
@@ -81,7 +83,7 @@ int main(void)
 }
 
 
-__attribute__((weak)) void SystemClock_Config(void)
+void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
