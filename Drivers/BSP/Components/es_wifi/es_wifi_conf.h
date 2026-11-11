@@ -46,6 +46,10 @@
 #ifndef __ES_WIFI_CONF_H
 #define __ES_WIFI_CONF_H
 
+#ifndef SPI_INTERFACE_PRIO
+#define SPI_INTERFACE_PRIO   1
+#endif
+
 #ifdef __cplusplus
  extern "C" {
 #endif  

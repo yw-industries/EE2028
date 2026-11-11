@@ -6,7 +6,7 @@
 
 #define WIFI_SSID      "Galaxy A54 5G 7C6B"
 #define WIFI_PASSWORD  "yavbded5sanqiqr"
-#define LAPTOP_IP      {192, 168, 1, 100}   /* laptop's IP on the hotspot */
+#define LAPTOP_IP      {10, 145, 216, 139}   /* laptop's IP on the hotspot */
 #define LAPTOP_PORT    5000                 /* must match PORT in server.py */
 
 #endif

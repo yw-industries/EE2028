@@ -237,7 +237,7 @@ void EXTI15_10_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 
 /**
-  * @brief WiFi module SPI3 interrupt.
+  * @brief WiFi module SPI3 interrupt
   */
 // void SPI3_IRQHandler(void)
 // {
