@@ -57,7 +57,8 @@ Core/Src/states.o: ../Core/Src/states.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/psensor.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/tsensor.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_hsensor.h \
- ../Core/Inc/uart.h
+ ../Core/Inc/uart.h ../Core/Inc/audio_stream.h ../Core/Inc/ml_inference.h \
+ ../Core/Inc/microphone.h ../Core/Inc/audio_stream.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -118,3 +119,7 @@ Core/Src/states.o: ../Core/Src/states.c ../Core/Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/tsensor.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_hsensor.h:
 ../Core/Inc/uart.h:
+../Core/Inc/audio_stream.h:
+../Core/Inc/ml_inference.h:
+../Core/Inc/microphone.h:
+../Core/Inc/audio_stream.h:

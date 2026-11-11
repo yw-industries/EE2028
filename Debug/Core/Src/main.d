@@ -38,7 +38,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
- ../Core/Inc/uart.h ../Core/Inc/wifi_link.h ../Core/Inc/es_wifi_io.h
+ ../Core/Inc/ml_inference.h ../Core/Inc/microphone.h \
+ ../Core/Inc/audio_stream.h ../Core/Inc/audio_stream.h ../Core/Inc/uart.h \
+ ../Core/Inc/audio_preprocessor.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -79,6 +81,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h:
+../Core/Inc/ml_inference.h:
+../Core/Inc/microphone.h:
+../Core/Inc/audio_stream.h:
+../Core/Inc/audio_stream.h:
 ../Core/Inc/uart.h:
-../Core/Inc/wifi_link.h:
-../Core/Inc/es_wifi_io.h:
+../Core/Inc/audio_preprocessor.h:

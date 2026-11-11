@@ -5,8 +5,8 @@ import time
 PORT = "COM7"
 BAUD = 115200
 
-SAMPLE_RATE = 10149
-SAMPLE_COUNT = 31250 - 256
+SAMPLE_RATE = 16000
+SAMPLE_COUNT = 16000 - 256
 EXPECTED_BYTES = SAMPLE_COUNT * 2
 
 with serial.Serial(PORT, BAUD, timeout=10) as ser:
@@ -31,11 +31,13 @@ with serial.Serial(PORT, BAUD, timeout=10) as ser:
             f"received {len(audio)}"
         )
 
-    response = ser.readline().strip()
-    print("STM32 status:", response)
+    print("Expected bytes:", EXPECTED_BYTES)
+    print("Received bytes:", len(audio))
 
-    if response != b"DONE":
-        raise RuntimeError("STM32 transfer incomplete")
+    extra = ser.read(64)
+
+    print("Next 64 bytes:", repr(extra))
+
 
     with wave.open("recording.wav", "wb") as wav:
         wav.setnchannels(1)

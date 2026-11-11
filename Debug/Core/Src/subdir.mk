@@ -5,6 +5,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/audio_stream.c \
 ../Core/Src/es_wifi.c \
 ../Core/Src/es_wifi_io.c \
 ../Core/Src/main.c \
@@ -20,6 +21,7 @@ C_SRCS += \
 ../Core/Src/wifi_link.c 
 
 OBJS += \
+./Core/Src/audio_stream.o \
 ./Core/Src/es_wifi.o \
 ./Core/Src/es_wifi_io.o \
 ./Core/Src/main.o \
@@ -35,6 +37,7 @@ OBJS += \
 ./Core/Src/wifi_link.o 
 
 C_DEPS += \
+./Core/Src/audio_stream.d \
 ./Core/Src/es_wifi.d \
 ./Core/Src/es_wifi_io.d \
 ./Core/Src/main.d \
@@ -57,7 +60,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/es_wifi.cyclo ./Core/Src/es_wifi.d ./Core/Src/es_wifi.o ./Core/Src/es_wifi.su ./Core/Src/es_wifi_io.cyclo ./Core/Src/es_wifi_io.d ./Core/Src/es_wifi_io.o ./Core/Src/es_wifi_io.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/microphone.cyclo ./Core/Src/microphone.d ./Core/Src/microphone.o ./Core/Src/microphone.su ./Core/Src/states.cyclo ./Core/Src/states.d ./Core/Src/states.o ./Core/Src/states.su ./Core/Src/stm32l4xx_hal_msp.cyclo ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.cyclo ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.cyclo ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su ./Core/Src/telemetry.cyclo ./Core/Src/telemetry.d ./Core/Src/telemetry.o ./Core/Src/telemetry.su ./Core/Src/uart.cyclo ./Core/Src/uart.d ./Core/Src/uart.o ./Core/Src/uart.su ./Core/Src/wifi.cyclo ./Core/Src/wifi.d ./Core/Src/wifi.o ./Core/Src/wifi.su ./Core/Src/wifi_link.cyclo ./Core/Src/wifi_link.d ./Core/Src/wifi_link.o ./Core/Src/wifi_link.su
+	-$(RM) ./Core/Src/audio_stream.cyclo ./Core/Src/audio_stream.d ./Core/Src/audio_stream.o ./Core/Src/audio_stream.su ./Core/Src/es_wifi.cyclo ./Core/Src/es_wifi.d ./Core/Src/es_wifi.o ./Core/Src/es_wifi.su ./Core/Src/es_wifi_io.cyclo ./Core/Src/es_wifi_io.d ./Core/Src/es_wifi_io.o ./Core/Src/es_wifi_io.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/microphone.cyclo ./Core/Src/microphone.d ./Core/Src/microphone.o ./Core/Src/microphone.su ./Core/Src/states.cyclo ./Core/Src/states.d ./Core/Src/states.o ./Core/Src/states.su ./Core/Src/stm32l4xx_hal_msp.cyclo ./Core/Src/stm32l4xx_hal_msp.d ./Core/Src/stm32l4xx_hal_msp.o ./Core/Src/stm32l4xx_hal_msp.su ./Core/Src/stm32l4xx_it.cyclo ./Core/Src/stm32l4xx_it.d ./Core/Src/stm32l4xx_it.o ./Core/Src/stm32l4xx_it.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l4xx.cyclo ./Core/Src/system_stm32l4xx.d ./Core/Src/system_stm32l4xx.o ./Core/Src/system_stm32l4xx.su ./Core/Src/telemetry.cyclo ./Core/Src/telemetry.d ./Core/Src/telemetry.o ./Core/Src/telemetry.su ./Core/Src/uart.cyclo ./Core/Src/uart.d ./Core/Src/uart.o ./Core/Src/uart.su ./Core/Src/wifi.cyclo ./Core/Src/wifi.d ./Core/Src/wifi.o ./Core/Src/wifi.su ./Core/Src/wifi_link.cyclo ./Core/Src/wifi_link.d ./Core/Src/wifi_link.o ./Core/Src/wifi_link.su
 
 .PHONY: clean-Core-2f-Src
 

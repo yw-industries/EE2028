@@ -1,3 +1,4 @@
+"./Core/Src/audio_stream.o"
 "./Core/Src/es_wifi.o"
 "./Core/Src/es_wifi_io.o"
 "./Core/Src/main.o"

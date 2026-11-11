@@ -441,68 +441,217 @@
 
 
 /* ============================================================================
- * WIFI TEST PROGRAM (ACTIVE)
- * Connects to the hotspot in wifi_secrets.h, sends "Hello from STM32" and
- * then "tick N" every second to server.py on the laptop. Anything typed in
- * server.py is printed on the board's UART terminal.
+ * WIFI TEST PROGRAM (commented out)
+ * Tested and working. To re-enable: uncomment this block and comment out the
+ * speech recognition program below (only one main() may be active).
+ * ========================================================================== */
+
+// #include "main.h"
+// #include "uart.h"
+// #include "wifi_link.h"
+// #include "es_wifi_io.h"
+// #include <stdio.h>
+//
+// void SystemClock_Config(void);
+//
+// int main(void)
+// {
+//     char rx[64];
+//     char msg[64];
+//     uint32_t last_send = 0;
+//     uint32_t count = 0;
+//
+//     HAL_Init();
+//     SystemClock_Config();     // 80 MHz
+//     UART1_Init();             // after the clock change so the baud rate is correct
+//     UART_Print("\r\n--- WiFi test ---\r\n");
+//
+//     if (WifiLink_Init() != 0) {
+//         UART_Print("WiFi init failed, stopping.\r\n");
+//         while (1) {}
+//     }
+//     WifiLink_Send("Hello from STM32\r\n");
+//
+//     while (1)
+//     {
+//         // send a message to the laptop every second
+//         if (HAL_GetTick() - last_send >= 1000) {
+//             last_send = HAL_GetTick();
+//             snprintf(msg, sizeof(msg), "tick %lu\r\n", (unsigned long)count++);
+//             WifiLink_Send(msg);
+//         }
+//
+//         // print anything typed in server.py
+//         if (WifiLink_Receive(rx, sizeof(rx), 10) > 0) {
+//             UART_Print("From laptop: ");
+//             UART_Print(rx);
+//         }
+//     }
+// }
+//
+// void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+// {
+//     if (GPIO_Pin == GPIO_PIN_1) {
+//         SPI_WIFI_ISR();       // WiFi module data-ready pin
+//     }
+// }
+
+
+/* ============================================================================
+ * CONTINUOUS SPEECH RECOGNITION PROGRAM (ACTIVE)
+ * Records continuously, runs the yes/no keyword model once per second and
+ * prints the prediction over UART.
  * ========================================================================== */
 
 #include "main.h"
-#include "uart.h"
-#include "wifi_link.h"
-#include "es_wifi_io.h"
+
+#include <stdint.h>
 #include <stdio.h>
+#include "ml_inference.h"
+
+
+#define SETTLING_SAMPLES 256
+#define UART_CHUNK_SAMPLES 128
+
+#define AUDIO_SAMPLE_COUNT 16000
+
+
 
 void SystemClock_Config(void);
 
+#include "microphone.h"
+#include "audio_stream.h"
+#include "uart.h"
+#include "audio_preprocessor.h"
+#include <stdio.h>
+
+static int32_t audio_buffer[AUDIO_BUFFER_SIZE];
+static int16_t pcm_chunk[UART_CHUNK_SAMPLES];
+
 int main(void)
 {
-    char rx[64];
-    char msg[64];
-    uint32_t last_send = 0;
-    uint32_t count = 0;
-
     HAL_Init();
-    SystemClock_Config();     // 80 MHz
-    UART1_Init();             // after the clock change so the baud rate is correct
-    UART_Print("\r\n--- WiFi test ---\r\n");
+    SystemClock_Config();
+    UART1_Init();
 
-    if (WifiLink_Init() != 0) {
-        UART_Print("WiFi init failed, stopping.\r\n");
+    char msg[100];
+
+    // Initialize both ML models.
+    if (AudioPreprocessor_Init() != 0)
+    {
+        UART_Print("Preprocessor init failed\r\n");
         while (1) {}
     }
-    WifiLink_Send("Hello from STM32\r\n");
+
+    if (ML_Init() != 0)
+    {
+        UART_Print("Classifier init failed\r\n");
+        while (1) {}
+    }
+
+    UART_Print("ML models initialized\r\n");
+
+    // Initialize continuous microphone recording.
+    if (Microphone_Init() != HAL_OK)
+    {
+        UART_Print("Microphone init failed\r\n");
+        while (1) {}
+    }
+
+    if (Microphone_Enter() != HAL_OK)
+    {
+        UART_Print("Microphone start failed\r\n");
+        while (1) {}
+    }
+
+    UART_Print("Continuous microphone active\r\n");
+
+    static int16_t audio_window[16000];
+    static int8_t features[1960];
+
+    const char *labels[4] = {
+        "SILENCE",
+        "UNKNOWN",
+        "YES",
+        "NO"
+    };
+
+    uint32_t last_inference = HAL_GetTick();
 
     while (1)
     {
-        // send a message to the laptop every second
-        if (HAL_GetTick() - last_send >= 1000) {
-            last_send = HAL_GetTick();
-            snprintf(msg, sizeof(msg), "tick %lu\r\n", (unsigned long)count++);
-            WifiLink_Send(msg);
-        }
+        Microphone_Update();
 
-        // print anything typed in server.py
-        if (WifiLink_Receive(rx, sizeof(rx), 10) > 0) {
-            UART_Print("From laptop: ");
-            UART_Print(rx);
-        }
-    }
-}
+        if (HAL_GetTick() - last_inference >= 1000U)
+        {
+            last_inference = HAL_GetTick();
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if (GPIO_Pin == GPIO_PIN_1) {
-        SPI_WIFI_ISR();       // WiFi module data-ready pin
+            // Get the most recent second of audio.
+            if (AudioStream_GetWindow(
+                    audio_window, 16000) != 0)
+            {
+                continue;
+            }
+
+            // Generate Google's audio features.
+            int pre_status =
+                AudioPreprocessor_Process(
+                    audio_window, features
+                );
+
+            if (pre_status != 0)
+            {
+                UART_Print("Preprocessing failed\r\n");
+                continue;
+            }
+
+            // Run the speech classifier.
+            int8_t scores[4] = {0};
+
+            int ml_status =
+                ML_RunInference(features, scores);
+
+            if (ml_status != 0)
+            {
+                UART_Print("Inference failed\r\n");
+                continue;
+            }
+
+            // Find the highest scoring class.
+            int best = 0;
+
+            for (int i = 1; i < 4; i++)
+            {
+                if (scores[i] > scores[best])
+                {
+                    best = i;
+                }
+            }
+
+            snprintf(
+                msg,
+                sizeof(msg),
+                "Prediction: %s | Scores: %d %d %d %d\r\n",
+                labels[best],
+                (int)scores[0],
+                (int)scores[1],
+                (int)scores[2],
+                (int)scores[3]
+            );
+
+            UART_Print(msg);
+        }
     }
 }
 
 
 /* ============================================================================
  * SYSTEM CLOCK: 80 MHz (MSI 4 MHz -> PLL x40 /2). Shared by all programs.
+ * Marked weak: if another file also defines SystemClock_Config(), that one is
+ * used instead and this copy is ignored, so there's no "multiple definition".
  * ========================================================================== */
 
-void SystemClock_Config(void)
+__attribute__((weak)) void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
