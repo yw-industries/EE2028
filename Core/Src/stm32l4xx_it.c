@@ -57,7 +57,7 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
-
+extern SPI_HandleTypeDef hspi;   /* WiFi SPI handle, defined in es_wifi_io.c */
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -235,5 +235,21 @@ void EXTI15_10_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+  * @brief WiFi module SPI3 interrupt.
+  */
+void SPI3_IRQHandler(void)
+{
+  HAL_SPI_IRQHandler(&hspi);
+}
+
+/**
+  * @brief WiFi module data-ready pin (PE1) interrupt.
+  */
+void EXTI1_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+}
 
 /* USER CODE END 1 */
