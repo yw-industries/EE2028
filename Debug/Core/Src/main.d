@@ -38,26 +38,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
- ../Core/Inc/uart.h ../Core/Inc/telemetry.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_accelero.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/lsm6dsl.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/../Common/accelero.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/../Common/gyro.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_tsensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/hts221.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/../Common/hsensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/../Common/tsensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_gyro.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_magneto.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lis3mdl/lis3mdl.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lis3mdl/../Common/magneto.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_psensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/lps22hb.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/psensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/tsensor.h \
- ../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_hsensor.h \
- ../Core/Inc/states.h
+ ../Core/Inc/uart.h ../Core/Inc/wifi_link.h ../Core/Inc/es_wifi_io.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -99,23 +80,5 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h:
 ../Core/Inc/uart.h:
-../Core/Inc/telemetry.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_accelero.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/lsm6dsl.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/../Common/accelero.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lsm6dsl/../Common/gyro.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_tsensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/hts221.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/../Common/hsensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/hts221/../Common/tsensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_gyro.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_magneto.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lis3mdl/lis3mdl.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lis3mdl/../Common/magneto.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_psensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/lps22hb.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/psensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/../Components/lps22hb/../Common/tsensor.h:
-../Drivers/STM32L4xx_HAL_Driver/Inc/../../../Drivers/BSP/B-L4S5I-IOT01/stm32l4s5i_iot01_hsensor.h:
-../Core/Inc/states.h:
+../Core/Inc/wifi_link.h:
+../Core/Inc/es_wifi_io.h:

@@ -23,6 +23,10 @@
  extern "C" {
 #endif  
 
+#ifndef SPI_INTERFACE_PRIO
+#define SPI_INTERFACE_PRIO   1   /* NVIC priority for WiFi SPI3 / EXTI1 */
+#endif
+
 //#define WIFI_USE_CMSIS_OS
 
 #ifdef WIFI_USE_CMSIS_OS
@@ -67,8 +71,8 @@ extern osMutexId es_wifi_mutex;
 #define ES_WIFI_USE_FIRMWAREUPDATE                  0
 #define ES_WIFI_USE_WPS                             0
                                                     
-#define ES_WIFI_USE_SPI                             0    
-#define ES_WIFI_USE_UART                            (!ES_WIFI_USE_SPI)   
+#define ES_WIFI_USE_SPI                             1
+#define ES_WIFI_USE_UART                            (!ES_WIFI_USE_SPI)
    
 
 

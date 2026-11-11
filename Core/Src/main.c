@@ -4,6 +4,12 @@
 * (c) EE2028 Teaching Team
 ******************************************************************************/
 
+/* ============================================================================
+ * ORIGINAL DRONE STATE-MACHINE PROGRAM (commented out)
+ * When re-enabling: add the WiFi line to its HAL_GPIO_EXTI_Callback:
+ *     if (GPIO_Pin == GPIO_PIN_1) { SPI_WIFI_ISR(); return; }
+ * ========================================================================== */
+
 // // test
 // #include "main.h"
 // #include "uart.h"
@@ -120,192 +126,381 @@
 // }
 
 
+/* ============================================================================
+ * ML (TFLite Micro) TEST PROGRAM (commented out)
+ * Notes for re-enabling:
+ *  - Call UART1_Init() before the first UART_Print (right after SystemClock_Config)
+ *  - Add while (1) {} at the end of main()
+ *  - At 80 MHz, microphone.c needs OutputClock.Divider = 40 and
+ *    Oversampling = 125 (2 MHz mic clock, 16 kHz sample rate)
+ *  - Delete the SystemClock_Config() copy here if one is left active below
+ * ========================================================================== */
+
+// #include "main.h"
+//
+// #include "microphone.h"
+// #include "uart.h"
+// #include <stdint.h>
+// #include <stdio.h>
+// #include "ml_inference.h"
+//
+// #define SETTLING_SAMPLES 256
+// #define UART_CHUNK_SAMPLES 128
+//
+// static int32_t audio_buffer[AUDIO_BUFFER_SIZE];
+// static int16_t pcm_chunk[UART_CHUNK_SAMPLES];
+//
+// volatile uint32_t inference_ms = 0;
+//
+// void SystemClock_Config(void);
+//
+//
+// int main(void) {
+//     char message[100];
+//
+//     HAL_Init();
+//
+//     SystemClock_Config();
+//     uint32_t clock_source =
+//     __HAL_RCC_GET_SYSCLK_SOURCE();
+//
+//     snprintf(message, sizeof(message),
+//          "SYSCLK source: 0x%08lX\r\n",
+//          (unsigned long)clock_source);
+//
+// UART_Print(message);
+//
+//     UART1_Init();
+//
+//     UART_Print("Starting TFLite Micro...\r\n");
+//
+//
+// snprintf(
+//     message,
+//     sizeof(message),
+//     "SYSCLK: %lu Hz\r\n",
+//     (unsigned long)HAL_RCC_GetSysClockFreq()
+// );
+// UART_Print(message);
+//
+// snprintf(
+//     message,
+//     sizeof(message),
+//     "HCLK: %lu Hz\r\n",
+//     (unsigned long)HAL_RCC_GetHCLKFreq()
+// );
+// UART_Print(message);
+//
+// snprintf(
+//     message,
+//     sizeof(message),
+//     "PCLK1: %lu Hz\r\n",
+//     (unsigned long)HAL_RCC_GetPCLK1Freq()
+// );
+// UART_Print(message);
+//
+// snprintf(
+//     message,
+//     sizeof(message),
+//     "PCLK2: %lu Hz\r\n",
+//     (unsigned long)HAL_RCC_GetPCLK2Freq()
+// );
+// UART_Print(message);
+//
+//
+// uint32_t start = HAL_GetTick();
+//
+// HAL_Delay(1000);
+//
+// uint32_t elapsed = HAL_GetTick() - start;
+//
+// snprintf(
+//     message,
+//     sizeof(message),
+//     "HAL tick test: %lu ms\r\n",
+//     (unsigned long)elapsed
+// );
+//
+// UART_Print(message);
+//
+//
+//     UART_Print("Starting TFLite Micro...\r\n");
+//     int ml_status = ML_Init();
+//     // SystemClock_Config();
+//
+//     snprintf(
+//         message,
+//         sizeof(message),
+//         "HCLK: %lu Hz\r\n",
+//         (unsigned long)HAL_RCC_GetHCLKFreq()
+//     );
+//
+//
+//
+//
+//     snprintf(
+//         message,
+//         sizeof(message),
+//         "ML_Init status: %d\r\n",
+//         ml_status
+//     );
+//
+//     UART_Print(message);
+//     if (ml_status == 0)
+//     {
+//         static int8_t test_features[1960] = {0};
+//         int8_t scores[4] = {0};
+//
+//         uint32_t start_tick = HAL_GetTick();
+//
+//         int result = ML_RunInference(
+//             test_features,
+//             scores
+//         );
+//
+//         inference_ms = HAL_GetTick() - start_tick;
+//
+//         snprintf(
+//             message,
+//             sizeof(message),
+//             "Inference time: %lu ms\r\n",
+//             (unsigned long)inference_ms
+//         );
+//
+//         UART_Print(message);
+//
+//         snprintf(
+//             message,
+//             sizeof(message),
+//             "Inference status: %d\r\n",
+//             result
+//         );
+//
+//         UART_Print(message);
+//
+//         if (result == 0)
+//         {
+//             snprintf(
+//                 message,
+//                 sizeof(message),
+//                 "Scores: %d %d %d %d\r\n",
+//                 scores[0],
+//                 scores[1],
+//                 scores[2],
+//                 scores[3]
+//             );
+//
+//             UART_Print(message);
+//
+//             const char *labels[4] = {
+//                 "SILENCE",
+//                 "UNKNOWN",
+//                 "YES",
+//                 "NO"
+//             };
+//
+//             int best = 0;
+//
+//             for (int i = 1; i < 4; i++)
+//             {
+//                 if (scores[i] > scores[best])
+//                     best = i;
+//             }
+//
+//             snprintf(
+//                 message,
+//                 sizeof(message),
+//                 "Prediction: %s\r\n",
+//                 labels[best]
+//             );
+//
+//             UART_Print(message);
+//         }
+//     }
+//
+// }
+//
+//
+// static void SendAudio(void)
+// {
+//
+//     uint32_t index = SETTLING_SAMPLES;
+//
+//     while (index < AUDIO_BUFFER_SIZE)
+//     {
+//         uint16_t count = UART_CHUNK_SAMPLES;
+//
+//         if (AUDIO_BUFFER_SIZE - index < count)
+//             count = AUDIO_BUFFER_SIZE - index;
+//
+//         for (uint16_t i = 0; i < count; i++)
+//         {
+//             /* Extract signed DFSDM result */
+//             int32_t sample = audio_buffer[index + i] >> 8;
+//
+//             /*
+//              * Initial scaling.
+//              * We will calibrate this after listening.
+//              */
+//             sample = sample >> 1;
+//
+//             if (sample > 32767)
+//                 sample = 32767;
+//
+//             if (sample < -32768)
+//                 sample = -32768;
+//
+//             pcm_chunk[i] = (int16_t)sample;
+//         }
+//
+//         HAL_UART_Transmit(
+//             &huart1,
+//             (uint8_t *)pcm_chunk,
+//             count * sizeof(int16_t),
+//             HAL_MAX_DELAY
+//         );
+//
+//         index += count;
+//     }
+// }
+//
+// // int main(void)
+// // {
+// //     HAL_Init();
+//
+// //     UART1_Init();
+// //     char message[64];
+//
+// //     snprintf(message, sizeof(message),
+// //             "ML C++ test: %d\r\n",
+// //             ML_Test());
+//
+// //     UART_Print(message);
+//
+// //     if (Microphone_Init() != HAL_OK)
+// //     {
+// //         UART_Print("INIT_FAIL\n");
+// //         while (1) {}
+// //     }
+//
+// //     UART_Print("READY\n");
+//
+// //     uint8_t command;
+//
+// //     while (1)
+// //     {
+// //         /* Wait for Python to send R */
+// //         if (HAL_UART_Receive(
+// //                 &huart1,
+// //                 &command,
+// //                 1,
+// //                 HAL_MAX_DELAY
+// //             ) != HAL_OK)
+// //         {
+// //             continue;
+// //         }
+//
+// //         if (command != 'R')
+// //             continue;
+//
+// //         uint32_t start_tick = HAL_GetTick();
+//
+// //         if (Microphone_Start(
+// //                 audio_buffer,
+// //                 AUDIO_BUFFER_SIZE
+// //             ) != HAL_OK)
+// //         {
+// //             UART_Print("FAIL\n");
+// //             continue;
+// //         }
+//
+// //         /* Wait for DMA recording completion */
+// //         while (!microphone_done && !microphone_error)
+// //         {
+// //         }
+//
+// //         recording_ms = HAL_GetTick() - start_tick;
+//
+// //         if (microphone_error)
+// //         {
+// //             Microphone_Stop();
+// //             UART_Print("FAIL\n");
+// //             continue;
+// //         }
+//
+// //         Microphone_Stop();
+//
+// //         /* Send a header before binary audio */
+// //         UART_Print("DATA\n");
+//
+// //         SendAudio();
+//
+// //         UART_Print("DONE\n");
+// //     }
+// // }
+
+
+/* ============================================================================
+ * WIFI TEST PROGRAM (ACTIVE)
+ * Connects to the hotspot in wifi_secrets.h, sends "Hello from STM32" and
+ * then "tick N" every second to server.py on the laptop. Anything typed in
+ * server.py is printed on the board's UART terminal.
+ * ========================================================================== */
 
 #include "main.h"
-
-#include "microphone.h"
 #include "uart.h"
-#include <stdint.h>
+#include "wifi_link.h"
+#include "es_wifi_io.h"
 #include <stdio.h>
-#include "ml_inference.h"
-
-#define SETTLING_SAMPLES 256
-#define UART_CHUNK_SAMPLES 128
-
-static int32_t audio_buffer[AUDIO_BUFFER_SIZE];
-static int16_t pcm_chunk[UART_CHUNK_SAMPLES];
-
-volatile uint32_t inference_ms = 0;
 
 void SystemClock_Config(void);
 
-
-int main(void) {
-    char message[100];
+int main(void)
+{
+    char rx[64];
+    char msg[64];
+    uint32_t last_send = 0;
+    uint32_t count = 0;
 
     HAL_Init();
+    SystemClock_Config();     // 80 MHz
+    UART1_Init();             // after the clock change so the baud rate is correct
+    UART_Print("\r\n--- WiFi test ---\r\n");
 
-    SystemClock_Config();
-    uint32_t clock_source =
-    __HAL_RCC_GET_SYSCLK_SOURCE();
+    if (WifiLink_Init() != 0) {
+        UART_Print("WiFi init failed, stopping.\r\n");
+        while (1) {}
+    }
+    WifiLink_Send("Hello from STM32\r\n");
 
-    snprintf(message, sizeof(message),
-         "SYSCLK source: 0x%08lX\r\n",
-         (unsigned long)clock_source);
-
-UART_Print(message);
-
-    UART1_Init();
-
-    UART_Print("Starting TFLite Micro...\r\n");
-
-
-snprintf(
-    message,
-    sizeof(message),
-    "SYSCLK: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetSysClockFreq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "HCLK: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetHCLKFreq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "PCLK1: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetPCLK1Freq()
-);
-UART_Print(message);
-
-snprintf(
-    message,
-    sizeof(message),
-    "PCLK2: %lu Hz\r\n",
-    (unsigned long)HAL_RCC_GetPCLK2Freq()
-);
-UART_Print(message);
-
-
-uint32_t start = HAL_GetTick();
-
-HAL_Delay(1000);
-
-uint32_t elapsed = HAL_GetTick() - start;
-
-snprintf(
-    message,
-    sizeof(message),
-    "HAL tick test: %lu ms\r\n",
-    (unsigned long)elapsed
-);
-
-UART_Print(message);
-
-
-    UART_Print("Starting TFLite Micro...\r\n");
-    int ml_status = ML_Init();
-    // SystemClock_Config();
-
-    snprintf(
-        message,
-        sizeof(message),
-        "HCLK: %lu Hz\r\n",
-        (unsigned long)HAL_RCC_GetHCLKFreq()
-    );
-
-    
-
-
-    snprintf(
-        message,
-        sizeof(message),
-        "ML_Init status: %d\r\n",
-        ml_status
-    );
-
-    UART_Print(message);
-    if (ml_status == 0)
+    while (1)
     {
-        static int8_t test_features[1960] = {0};
-        int8_t scores[4] = {0};
+        // send a message to the laptop every second
+        if (HAL_GetTick() - last_send >= 1000) {
+            last_send = HAL_GetTick();
+            snprintf(msg, sizeof(msg), "tick %lu\r\n", (unsigned long)count++);
+            WifiLink_Send(msg);
+        }
 
-        uint32_t start_tick = HAL_GetTick();
-
-        int result = ML_RunInference(
-            test_features,
-            scores
-        );
-
-        inference_ms = HAL_GetTick() - start_tick;
-
-        snprintf(
-            message,
-            sizeof(message),
-            "Inference time: %lu ms\r\n",
-            (unsigned long)inference_ms
-        );
-
-        UART_Print(message);
-
-        snprintf(
-            message,
-            sizeof(message),
-            "Inference status: %d\r\n",
-            result
-        );
-
-        UART_Print(message);
-
-        if (result == 0)
-        {
-            snprintf(
-                message,
-                sizeof(message),
-                "Scores: %d %d %d %d\r\n",
-                scores[0],
-                scores[1],
-                scores[2],
-                scores[3]
-            );
-
-            UART_Print(message);
-
-            const char *labels[4] = {
-                "SILENCE",
-                "UNKNOWN",
-                "YES",
-                "NO"
-            };
-
-            int best = 0;
-
-            for (int i = 1; i < 4; i++)
-            {
-                if (scores[i] > scores[best])
-                    best = i;
-            }
-
-            snprintf(
-                message,
-                sizeof(message),
-                "Prediction: %s\r\n",
-                labels[best]
-            );
-
-            UART_Print(message);
+        // print anything typed in server.py
+        if (WifiLink_Receive(rx, sizeof(rx), 10) > 0) {
+            UART_Print("From laptop: ");
+            UART_Print(rx);
         }
     }
+}
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_1) {
+        SPI_WIFI_ISR();       // WiFi module data-ready pin
+    }
 }
 
 
+/* ============================================================================
+ * SYSTEM CLOCK: 80 MHz (MSI 4 MHz -> PLL x40 /2). Shared by all programs.
+ * ========================================================================== */
 
 void SystemClock_Config(void)
 {
@@ -360,124 +555,3 @@ void SystemClock_Config(void)
         while (1) {}
     }
 }
-
-
-
-static void SendAudio(void)
-{
-    
-    uint32_t index = SETTLING_SAMPLES;
-
-    while (index < AUDIO_BUFFER_SIZE)
-    {
-        uint16_t count = UART_CHUNK_SAMPLES;
-
-        if (AUDIO_BUFFER_SIZE - index < count)
-            count = AUDIO_BUFFER_SIZE - index;
-
-        for (uint16_t i = 0; i < count; i++)
-        {
-            /* Extract signed DFSDM result */
-            int32_t sample = audio_buffer[index + i] >> 8;
-
-            /*
-             * Initial scaling.
-             * We will calibrate this after listening.
-             */
-            sample = sample >> 1;
-
-            if (sample > 32767)
-                sample = 32767;
-
-            if (sample < -32768)
-                sample = -32768;
-
-            pcm_chunk[i] = (int16_t)sample;
-        }
-
-        HAL_UART_Transmit(
-            &huart1,
-            (uint8_t *)pcm_chunk,
-            count * sizeof(int16_t),
-            HAL_MAX_DELAY
-        );
-
-        index += count;
-    }
-}
-
-// int main(void)
-// {
-//     HAL_Init();
-
-//     UART1_Init();
-//     char message[64];
-
-//     snprintf(message, sizeof(message),
-//             "ML C++ test: %d\r\n",
-//             ML_Test());
-
-//     UART_Print(message);
-
-//     if (Microphone_Init() != HAL_OK)
-//     {
-//         UART_Print("INIT_FAIL\n");
-//         while (1) {}
-//     }
-
-//     UART_Print("READY\n");
-
-//     uint8_t command;
-
-//     while (1)
-//     {
-//         /* Wait for Python to send R */
-//         if (HAL_UART_Receive(
-//                 &huart1,
-//                 &command,
-//                 1,
-//                 HAL_MAX_DELAY
-//             ) != HAL_OK)
-//         {
-//             continue;
-//         }
-
-//         if (command != 'R')
-//             continue;
-
-//         uint32_t start_tick = HAL_GetTick();
-
-//         if (Microphone_Start(
-//                 audio_buffer,
-//                 AUDIO_BUFFER_SIZE
-//             ) != HAL_OK)
-//         {
-//             UART_Print("FAIL\n");
-//             continue;
-//         }
-
-//         /* Wait for DMA recording completion */
-//         while (!microphone_done && !microphone_error)
-//         {
-//         }
-        
-//         recording_ms = HAL_GetTick() - start_tick;
-
-//         if (microphone_error)
-//         {
-//             Microphone_Stop();
-//             UART_Print("FAIL\n");
-//             continue;
-//         }
-
-//         Microphone_Stop();
-
-//         /* Send a header before binary audio */
-//         UART_Print("DATA\n");
-
-//         SendAudio();
-
-//         UART_Print("DONE\n");
-//     }
-// }
-

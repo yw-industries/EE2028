@@ -16,7 +16,6 @@ RM := rm -rf
 -include Drivers/BSP/Components/lps22hb/subdir.mk
 -include Drivers/BSP/Components/lis3mdl/subdir.mk
 -include Drivers/BSP/Components/hts221/subdir.mk
--include Drivers/BSP/Components/es_wifi/subdir.mk
 -include Drivers/BSP/B-L4S5I-IOT01/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
@@ -68,8 +67,8 @@ all: main-build
 main-build: Assignment2.elf secondary-outputs
 
 # Tool invocations
-Assignment2.elf Assignment2.map: $(OBJS) $(USER_OBJS) C:\Users\yw\Documents\Assignment2\Assignment2\STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Assignment2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\yw\Documents\Assignment2\Assignment2\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Assignment2.map" -Wl,--gc-sections -static -specs=rdimon.specs --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Assignment2.elf Assignment2.map: $(OBJS) $(USER_OBJS) C:\Users\nicho\git\EE2028\STM32L4S5VITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Assignment2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\nicho\git\EE2028\STM32L4S5VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Assignment2.map" -Wl,--gc-sections -static -specs=rdimon.specs --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
