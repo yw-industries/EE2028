@@ -2,6 +2,7 @@
 #define AUDIO_STREAM_H
 
 #include <stdint.h>
+#include "stm32l4xx_hal.h"
 
 #define AUDIO_SAMPLE_RATE 16000U
 #define AUDIO_WINDOW_SAMPLES 16000U

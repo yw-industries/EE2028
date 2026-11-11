@@ -10,7 +10,16 @@
 
 #ifndef INC_STATES_H_
 
+#include <stdio.h>
 #include <stdint.h>
+
+#include "main.h"
+#include "telemetry.h"
+#include "uart.h"
+#include "audio_stream.h"
+#include "ml_inference.h"
+#include "microphone.h"
+
 #define INC_STATES_H_
 
 void standby_update(void);

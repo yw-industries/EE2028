@@ -1,8 +1,6 @@
 
 #include "audio_stream.h"
-#include "stm32l4xx_hal.h"
 
-#include <string.h>
 
 static int16_t audio_ring[AUDIO_RING_SAMPLES];
 

@@ -4,18 +4,7 @@
  *  Created on: Nov 1, 2026
  *      Author: yw
  */
-
-#include "main.h"
-#include "telemetry.h"
-#include "uart.h"
-#include "audio_stream.h"
-#include "ml_inference.h"
-#include "microphone.h"
-#include "uart.h"
-
-#include <stdio.h>
-
-
+#include "states.h"
 char message_print[100];
 
 /****************
@@ -76,6 +65,7 @@ void battle_update(void) {
 		stateMachine = THE_LAST_OF_EE2028;
 		last_print_timer = curr_time;
 		rescue_timer = curr_time;
+		SpeechRecognition_Enter();
 	}
 }
 
@@ -144,6 +134,7 @@ void last_singleclick(void) {
 void last_doubleclick (void) {
 
     // clear and return to battle mode
+	SpeechRecognition_Exit();
 	UART_Print("The Last Of EE2028 cleared!\r\n");
 	stateMachine = BATTLE_MODE;
 }
@@ -153,102 +144,169 @@ void last_doubleclick (void) {
  *************************/
 
 
-static volatile uint8_t listening_enabled = 0;
+/* ============================================
+   SPEECH RECOGNITION
+   ============================================ */
 
-static int16_t audio_window[AUDIO_WINDOW_SAMPLES];
+#define SPEECH_WINDOW_SAMPLES 16000U
+#define SPEECH_STRIDE_SAMPLES 12000U
+#define SPEECH_FEATURE_COUNT 1960U
+
+#define SPEECH_CONFIDENCE_THRESHOLD 0.80f
+#define SPEECH_COOLDOWN_MS 1500U
+
+static uint8_t speech_active = 0;
+
+static int16_t speech_audio[SPEECH_WINDOW_SAMPLES];
+static int8_t speech_features[SPEECH_FEATURE_COUNT];
 
 static uint32_t last_inference_sample = 0;
+static uint32_t last_detection_ms = 0;
+static uint8_t detection_occurred = 0;
 
-void SpeechDetector_SetEnabled(uint8_t enabled)
+static const char *speech_labels[4] = {
+    "SILENCE",
+    "UNKNOWN",
+    "YES",
+    "NO"
+};
+
+
+/* Called when entering EE2028 mode */
+void SpeechRecognition_Enter(void)
 {
-    if (enabled)
-    {
-        if (!listening_enabled)
-        {
-            AudioStream_Reset();
+    if (speech_active)
+        return;
 
-            if (Microphone_StartContinuous() == HAL_OK)
-            {
-                last_inference_sample = 0;
-                listening_enabled = 1;
-            }
-        }
+    // Reset detection history.
+    last_inference_sample = 0;
+    last_detection_ms = 0;
+    detection_occurred = 0;
+
+    // Microphone_Enter resets audio history
+    // and starts circular DMA.
+    if (Microphone_Enter() == HAL_OK)
+    {
+        speech_active = 1;
+        UART_Print("Speech recognition enabled\r\n");
     }
     else
     {
-        if (listening_enabled)
-        {
-            Microphone_StopContinuous();
-            listening_enabled = 0;
-        }
+        UART_Print("Speech recognition start failed\r\n");
     }
 }
 
-uint8_t SpeechDetector_IsEnabled(void)
-{
-    return listening_enabled;
-}
 
-void SpeechDetector_Process(void)
+/* Called repeatedly while in EE2028 mode */
+void SpeechRecognition_Update(void)
 {
-    if (!listening_enabled)
+    if (!speech_active)
         return;
+
+    Microphone_Update();
 
     uint32_t total = AudioStream_GetTotalSamples();
 
-    if (total < AUDIO_WINDOW_SAMPLES)
+    if (total < SPEECH_WINDOW_SAMPLES)
         return;
 
-    // Run at most once per 8000 new samples (~500 ms).
+    // Wait for 12000 new samples (~750 ms).
     if (last_inference_sample != 0 &&
-        (total - last_inference_sample) < 8000U)
+        (uint32_t)(total - last_inference_sample)
+            < SPEECH_STRIDE_SAMPLES)
     {
         return;
     }
 
     if (AudioStream_GetWindow(
-            audio_window,
-            AUDIO_WINDOW_SAMPLES) != 0)
+            speech_audio,
+            SPEECH_WINDOW_SAMPLES) != 0)
     {
         return;
     }
 
     last_inference_sample = total;
 
+    // Generate Google's audio features.
+    if (AudioPreprocessor_Process(
+            speech_audio,
+            speech_features) != 0)
+    {
+        return;
+    }
+
+    // Run classifier.
+    int8_t scores[4] = {0};
+
+    if (ML_RunInference(speech_features, scores) != 0)
+    {
+        return;
+    }
+
+    // Find highest-scoring class.
+    int best = 0;
+
+    for (int i = 1; i < 4; i++)
+    {
+        if (scores[i] > scores[best])
+            best = i;
+    }
+
+    // Assumes softmax scale = 1/256
+    // and zero point = -128.
+    float confidence =
+        ((float)scores[best] + 128.0f) / 256.0f;
+
+    uint32_t now = HAL_GetTick();
+
+    if (best == 2 || best == 3)
+    {
+        // Require 80% confidence for YES/NO.
+        if (confidence < SPEECH_CONFIDENCE_THRESHOLD)
+        {
+            UART_Print("UNKNOWN\r\n");
+            return;
+        }
+
+        // Prevent repeated detections.
+        if (detection_occurred &&
+            (uint32_t)(now - last_detection_ms)
+                < SPEECH_COOLDOWN_MS)
+        {
+            return;
+        }
+
+        last_detection_ms = now;
+        detection_occurred = 1;
+    }
+
+    UART_Print(speech_labels[best]);
+    UART_Print("\r\n");
 }
+
+
+/* Called when leaving EE2028 mode */
+void SpeechRecognition_Exit(void)
+{
+    if (!speech_active)
+        return;
+
+    if (Microphone_Exit() == HAL_OK)
+    {
+        speech_active = 0;
+        UART_Print("Speech recognition disabled\r\n");
+    }
+    else
+    {
+        UART_Print("Speech recognition stop failed\r\n");
+    }
+}
+ 
+
+static volatile uint8_t listening_enabled = 0;
+
+static int16_t audio_window[AUDIO_WINDOW_SAMPLES];
+
+static uint32_t last_inference_sample = 0;
 
 static uint8_t speech_listening = 0;
-
-void States_EnableSpeechDetection(void)
-{
-    if (speech_listening)
-        return;
-
-    AudioStream_Reset();
-
-    if (Microphone_StartContinuous() == HAL_OK)
-    {
-        speech_listening = 1;
-    }
-}
-
-void States_DisableSpeechDetection(void)
-{
-    if (!speech_listening)
-        return;
-
-    if (Microphone_StopContinuous() == HAL_OK)
-    {
-        speech_listening = 0;
-    }
-}
-
-void States_ProcessSpeechDetection(void)
-{
-    if (!speech_listening)
-        return;
-
-    // Audio preprocessing and inference
-    // will be integrated here.
-}
-
