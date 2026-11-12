@@ -14,6 +14,6 @@
 extern UART_HandleTypeDef huart1;
 
 void UART1_Init(void);
-void UART_Print(char *message);
+void UART_Print(const char *message);
 
 #endif /* INC_UART_H_ */

@@ -5,6 +5,7 @@
  *      Author: yw
  */
 #include "states.h"
+#include "audio_preprocessor.h"
 char message_print[100];
 
 /****************

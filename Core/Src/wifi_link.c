@@ -103,3 +103,14 @@ int WifiLink_IsConnected(void)
 {
     return connected;
 }
+
+
+void Comms_Print(const char *msg)
+{
+    UART_Print((char *)msg);          /* cast only needed while uart.h takes char* */
+
+    if (WifiLink_IsConnected())
+    {
+        WifiLink_Send(msg);
+    }
+}

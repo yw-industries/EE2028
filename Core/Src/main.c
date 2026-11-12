@@ -15,9 +15,17 @@
 #include "uart.h"
 #include "telemetry.h"
 #include "states.h"
+#include "wifi_link.h"
+#include "es_wifi_io.h"
 
 #define DOUBLE_CLICK_MS 500U
 #define DEBOUNCE_MS 40U
+
+/* WiFi polling: how often to check for laptop commands, and how long each
+ * check may wait. Keep both small so SpeechRecognition_Update() is not
+ * starved of audio frames. */
+#define WIFI_POLL_MS        200U
+#define WIFI_RX_TIMEOUT_MS  1U
 
 volatile StateMachine stateMachine = STANDBY_MODE;
 volatile uint32_t curr_time = 0;
@@ -30,8 +38,14 @@ static volatile uint8_t click_pending = 0;
 static volatile uint8_t doubleclick_pending = 0;
 static volatile uint8_t button_initialized = 0;
 
+/* WiFi (main loop only, never touched from an interrupt) */
+static uint8_t wifi_ok = 0;
+static uint32_t last_wifi_poll = 0;
+
 void SystemClock_Config(void);
 void singleclick_check(void);
+static void dispatch_click(uint8_t event);
+static void wifi_poll(void);
 
 /* ============================================
    MAIN
@@ -40,7 +54,7 @@ void singleclick_check(void);
 int main(void)
 {
     HAL_Init();
-    SystemClock_Config();
+    SystemClock_Config();          /* 80 MHz, must run before UART1_Init() */
 
     UART1_Init();
     Sensors_Init();
@@ -49,7 +63,6 @@ int main(void)
     BSP_LED_On(LED2);
 
     BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
     /* Initialize ML models once */
     if (AudioPreprocessor_Init() != 0)
@@ -71,13 +84,26 @@ int main(void)
         while (1) {}
     }
 
-    UART_Print("System ready\r\n");
+    /* WiFi is optional: if it fails, keep running on UART only */
+    UART_Print("Connecting to WiFi...\r\n");
+    if (WifiLink_Init() == 0)
+    {
+        wifi_ok = 1;
+        Comms_Print("WiFi connected\r\n");
+    }
+    else
+    {
+        UART_Print("WiFi init failed, continuing with UART only\r\n");
+    }
+
+    Comms_Print("System ready\r\n");
 
     while (1)
     {
         curr_time = HAL_GetTick();
 
         singleclick_check();
+        wifi_poll();
 
         switch (stateMachine)
         {
@@ -101,11 +127,18 @@ int main(void)
 }
 
 /* ============================================
-   BUTTON INTERRUPT
+   GPIO INTERRUPTS (button + WiFi data-ready)
    ============================================ */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+    /* WiFi module data-ready (PE1 / EXTI1). Must stay here or WiFi hangs. */
+    if (GPIO_Pin == GPIO_PIN_1)
+    {
+        SPI_WIFI_ISR();
+        return;
+    }
+
     if (GPIO_Pin != BUTTON_EXTI13_Pin)
         return;
 
@@ -167,6 +200,12 @@ void singleclick_check(void)
     __set_PRIMASK(primask);
 
     /* Execute state functions outside the interrupt */
+    dispatch_click(event);
+}
+
+/* event: 1 = single click, 2 = double click, 0 = nothing */
+static void dispatch_click(uint8_t event)
+{
     if (event == 1)
     {
         switch (stateMachine)
@@ -209,6 +248,53 @@ void singleclick_check(void)
     }
 }
 
+/* ============================================
+   WIFI COMMANDS FROM LAPTOP
+   ============================================ */
+
+/*
+ * Checks for a line from server.py every WIFI_POLL_MS.
+ *   "s" -> acts like a single click
+ *   "d" -> acts like a double click
+ * Anything else is echoed to UART.
+ * Called from the main loop only: WiFi functions must never run in an ISR.
+ */
+static void wifi_poll(void)
+{
+    char rx[64];
+    char *p;
+
+    if (!wifi_ok)
+        return;
+
+    if ((uint32_t)(curr_time - last_wifi_poll) < WIFI_POLL_MS)
+        return;
+
+    last_wifi_poll = curr_time;
+
+    if (WifiLink_Receive(rx, sizeof(rx), WIFI_RX_TIMEOUT_MS) <= 0)
+        return;
+
+    /* Skip leading whitespace */
+    p = rx;
+    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+        p++;
+
+    if (*p == 's' || *p == 'S')
+    {
+        dispatch_click(1);
+    }
+    else if (*p == 'd' || *p == 'D')
+    {
+        dispatch_click(2);
+    }
+    else if (*p != '\0')
+    {
+        UART_Print("From laptop: ");
+        UART_Print(rx);
+    }
+}
+
 void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -223,7 +309,7 @@ void SystemClock_Config(void)
         while (1) {}
     }
 
-    /* Configure MSI and PLL */
+    /* Configure MSI and PLL: 4 MHz MSI x40 /2 = 80 MHz */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
     RCC_OscInitStruct.MSIState = RCC_MSI_ON;
     RCC_OscInitStruct.MSICalibrationValue =
@@ -266,7 +352,8 @@ void SystemClock_Config(void)
 /* ============================================================================
  * WIFI TEST PROGRAM (commented out)
  * Tested and working. To re-enable: uncomment this block and comment out the
- * speech recognition program below (only one main() may be active).
+ * main program above (only one main() and one HAL_GPIO_EXTI_Callback() may
+ * be active).
  * ========================================================================== */
 
 // #include "main.h"
@@ -318,4 +405,3 @@ void SystemClock_Config(void)
 //         SPI_WIFI_ISR();       // WiFi module data-ready pin
 //     }
 // }
-
