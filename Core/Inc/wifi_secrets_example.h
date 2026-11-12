@@ -4,6 +4,7 @@
 #ifndef WIFI_SECRETS_H
 #define WIFI_SECRETS_H
 
+#define BOARD_ID "Y"     /* "B" or "A" on the other board */
 #define WIFI_SSID      "YourHotspotName"
 #define WIFI_PASSWORD  "YourHotspotPassword"
 #define LAPTOP_IP      {192, 168, 1, 100}   /* laptop's IP on the hotspot */
