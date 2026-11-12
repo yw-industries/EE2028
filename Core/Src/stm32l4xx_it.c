@@ -239,10 +239,10 @@ void EXTI15_10_IRQHandler(void)
 /**
   * @brief WiFi module SPI3 interrupt
   */
-// void SPI3_IRQHandler(void)
-// {
-//   HAL_SPI_IRQHandler(&hspi);
-// }
+ void SPI3_IRQHandler(void)
+ {
+   HAL_SPI_IRQHandler(&hspi);
+ }
 
 /**
   * @brief WiFi module data-ready pin (PE1) interrupt.
