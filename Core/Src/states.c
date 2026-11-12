@@ -6,6 +6,7 @@
  */
 #include "states.h"
 #include "audio_preprocessor.h"
+#include "wifi_link.h"
 char message_print[100];
 
 /****************
@@ -136,6 +137,7 @@ void last_doubleclick (void) {
 
     // clear and return to battle mode
 	SpeechRecognition_Exit();
+	Comms_Safe();               // clear the help alert on the dashboard
 	UART_Print("The Last Of EE2028 cleared!\r\n");
 	stateMachine = BATTLE_MODE;
 }
@@ -164,6 +166,7 @@ static int8_t speech_features[SPEECH_FEATURE_COUNT];
 static uint32_t last_inference_sample = 0;
 static uint32_t last_detection_ms = 0;
 static uint8_t detection_occurred = 0;
+static uint8_t help_sent = 0;      // one help request per emergency
 
 static const char *speech_labels[4] = {
     "SILENCE",
@@ -183,6 +186,7 @@ void SpeechRecognition_Enter(void)
     last_inference_sample = 0;
     last_detection_ms = 0;
     detection_occurred = 0;
+    help_sent = 0;
 
     // Microphone_Enter resets audio history
     // and starts circular DMA.
@@ -283,6 +287,14 @@ void SpeechRecognition_Update(void)
 
     UART_Print(speech_labels[best]);
     UART_Print("\r\n");
+
+    // A confident YES means a human is present: call the other drone for help
+    if (best == 2 && !help_sent)
+    {
+        help_sent = 1;
+        Comms_Print("Human confirmed - calling for rescue\r\n");
+        Comms_RequestHelp("YES");
+    }
 }
 
 

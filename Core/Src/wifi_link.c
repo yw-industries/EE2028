@@ -114,3 +114,19 @@ void Comms_Print(const char *msg)
         WifiLink_Send(msg);
     }
 }
+
+void Comms_RequestHelp(const char *reason)
+{
+    char msg[48];
+    if (!WifiLink_IsConnected()) return;
+    if (reason && reason[0])
+        snprintf(msg, sizeof(msg), "HELP:%s\r\n", reason);
+    else
+        snprintf(msg, sizeof(msg), "HELP\r\n");
+    WifiLink_Send(msg);
+}
+
+void Comms_Safe(void)
+{
+    if (WifiLink_IsConnected()) WifiLink_Send("SAFE\r\n");
+}

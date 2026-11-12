@@ -21,4 +21,7 @@ int WifiLink_IsConnected(void);
 /* Prints to UART, and also to the laptop if WiFi is connected. */
 void Comms_Print(const char *msg);
 
+void Comms_RequestHelp(const char *reason);
+void Comms_Safe(void);
+
 #endif

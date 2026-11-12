@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "ml_inference.h"
 #include "audio_preprocessor.h"
@@ -16,6 +17,7 @@
 #include "telemetry.h"
 #include "states.h"
 #include "wifi_link.h"
+#include "wifi_secrets.h"
 #include "es_wifi_io.h"
 
 #define DOUBLE_CLICK_MS 500U
@@ -89,6 +91,7 @@ int main(void)
     if (WifiLink_Init() == 0)
     {
         wifi_ok = 1;
+        WifiLink_Send("ID:" BOARD_ID "\r\n");
         Comms_Print("WiFi connected\r\n");
     }
     else
@@ -254,15 +257,22 @@ static void dispatch_click(uint8_t event)
 
 /*
  * Checks for a line from server.py every WIFI_POLL_MS.
- *   "s" -> acts like a single click
- *   "d" -> acts like a double click
+ *   "s"            -> acts like a single click
+ *   "d"            -> acts like a double click
+ *   "A:HELP[:why]" -> board A needs help: alert, and reply "ACK:A"
+ *   "B:ACK"        -> board B is responding to our help request
+ *   "A:SAFE"       -> board A no longer needs help
  * Anything else is echoed to UART.
  * Called from the main loop only: WiFi functions must never run in an ISR.
  */
 static void wifi_poll(void)
 {
     char rx[64];
+    char from[8];
+    char reply[24];
     char *p;
+    char *colon;
+    size_t len;
 
     if (!wifi_ok)
         return;
@@ -275,24 +285,65 @@ static void wifi_poll(void)
     if (WifiLink_Receive(rx, sizeof(rx), WIFI_RX_TIMEOUT_MS) <= 0)
         return;
 
-    /* Skip leading whitespace */
+    /* Skip leading whitespace, cut off the trailing CR/LF */
     p = rx;
     while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
         p++;
+    p[strcspn(p, "\r\n")] = '\0';
 
-    if (*p == 's' || *p == 'S')
+    if (*p == '\0')
+        return;
+
+    /* Laptop remote clicks: exactly "s" or "d" */
+    if (p[1] == '\0' && (p[0] == 's' || p[0] == 'S'))
     {
         dispatch_click(1);
+        return;
     }
-    else if (*p == 'd' || *p == 'D')
+    if (p[1] == '\0' && (p[0] == 'd' || p[0] == 'D'))
     {
         dispatch_click(2);
+        return;
     }
-    else if (*p != '\0')
+
+    /* Messages about another board look like "<board>:<message>" */
+    colon = strchr(p, ':');
+    if (colon != NULL && colon != p)
     {
-        UART_Print("From laptop: ");
-        UART_Print(rx);
+        len = (size_t)(colon - p);
+        if (len >= sizeof(from))
+            len = sizeof(from) - 1;
+        memcpy(from, p, len);
+        from[len] = '\0';
+
+        if (strncmp(colon + 1, "HELP", 4) == 0)
+        {
+            Comms_Print("*** Board ");
+            Comms_Print(from);
+            Comms_Print(" needs help! Responding. ***\r\n");
+            snprintf(reply, sizeof(reply), "ACK:%s\r\n", from);
+            WifiLink_Send(reply);
+            return;
+        }
+        if (strcmp(colon + 1, "ACK") == 0)
+        {
+            Comms_Print("Board ");
+            Comms_Print(from);
+            Comms_Print(" is coming to help\r\n");
+            return;
+        }
+        if (strcmp(colon + 1, "SAFE") == 0)
+        {
+            Comms_Print("Board ");
+            Comms_Print(from);
+            Comms_Print(" is safe again\r\n");
+            return;
+        }
     }
+
+    UART_Print("From laptop: ");
+    UART_Print(p);
+    UART_Print("\r\n");
 }
 
 void SystemClock_Config(void)

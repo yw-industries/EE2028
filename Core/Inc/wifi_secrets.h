@@ -4,6 +4,7 @@
 #ifndef WIFI_SECRETS_H
 #define WIFI_SECRETS_H
 
+#define BOARD_ID "Bob"     /* "B" on the other board */
 #define WIFI_SSID      "Galaxy A54 5G 7C6B"
 #define WIFI_PASSWORD  "yavbded5sanqiqr"
 #define LAPTOP_IP      {10, 145, 216, 139}   /* laptop's IP on the hotspot */
