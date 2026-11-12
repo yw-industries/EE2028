@@ -18,4 +18,7 @@ int WifiLink_Receive(char *buf, uint16_t maxlen, uint32_t timeout_ms);
 
 int WifiLink_IsConnected(void);
 
+/* Prints to UART, and also to the laptop if WiFi is connected. */
+void Comms_Print(const char *msg);
+
 #endif

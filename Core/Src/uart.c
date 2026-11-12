@@ -32,7 +32,7 @@ void UART1_Init(void)
     }
 }
 
-void UART_Print(char *message)
+void UART_Print(const char *message)
 {
     HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), 0xFFFF);
 }
