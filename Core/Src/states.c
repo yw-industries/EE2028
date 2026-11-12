@@ -34,7 +34,6 @@ void standby_update(void) {
 	}
 }
 
-
 void standby_singleclick(void) {
 	;
 }
@@ -45,7 +44,6 @@ void standby_doubleclick(void) {
 	UART_Print("Entering Battle Mode\r\n");
 	stateMachine = BATTLE_MODE;
 }
-
 
 /****************
  * BATTLE MODE
@@ -140,11 +138,6 @@ void last_doubleclick (void) {
 	stateMachine = BATTLE_MODE;
 }
 
-/**************************
- * SPEECH DETECTOR
- *************************/
-
-
 /* ============================================
    SPEECH RECOGNITION
    ============================================ */
@@ -172,7 +165,6 @@ static const char *speech_labels[4] = {
     "NO"
 };
 
-
 /* Called when entering EE2028 mode */
 void SpeechRecognition_Enter(void)
 {
@@ -196,7 +188,6 @@ void SpeechRecognition_Enter(void)
         UART_Print("Speech recognition start failed\r\n");
     }
 }
-
 
 /* Called repeatedly while in EE2028 mode */
 void SpeechRecognition_Update(void)

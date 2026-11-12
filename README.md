@@ -9,7 +9,7 @@ An STM32-based interactive drone simulation developed for NUS's EE2028. In addit
 | Development board | ST B-L4S5I-IOT01A Discovery kit (IoT node) |
 | MCU | STM32L4S5VIT6, Arm Cortex-M4, up to 80 MHz, 2 MB Flash, 640 KB RAM (distributed across memory regions) |
 | Audio | Onboard digital MEMS microphone, PDM output |
-| Sensors | ==list them== |
+| Sensors | Accelerometer, Gyroscope, Magnetometer, Temperature Sensor, Pressure Sensor, Humidity Sensor |
 | Connectivity | Onboard Wi-Fi module, driven through ST's ES-WIFI stack over SPI |
 | Serial | UART, 115200 baud |
 
@@ -23,9 +23,9 @@ The board represents a drone operating during a fictional zombie-virus outbreak.
 | `BATTLE_MODE` | Simulates a weapon: each single press adds **3 energy**; once energy reaches **5**, the gun fires and consumes 5 energy. The board monitors its orientation. | Double-click to return to Standby; an upside-down condition enters `THE_LAST_OF_EE2028`. LED blinks at 1Hz |
 | `THE_LAST_OF_EE2028` | Simulates a drone under attack. LED and warning messages run while the system enables keyword recognition and prepares to contact other drones through a server. | Double-click to clear the emergency and return to Battle; a rescue timeout ends the scenario. LED blinks at 2Hz |
 
-### 1.1 Additional Behaviour
+### 1.1 Additional Behaviour: Rescue call
 
-The premise of LAST OF EE2028 is that the drone is surrounded and outnumbered by zombies. Before drone can send a call for rescue, keyword has to be spoken to the drone in order for the call to be sent out. This is because alien zombies can only speak alien-ese, a *"YES"*(the keyword in question) indicates a human-presence. If no human is present, it might be better to leave the drone to be destroyed in order to save human lives.
+The premise of LAST OF EE2028 is that the drone is surrounded and outnumbered by zombies. Before drone can send a call for rescue, keyword has to be spoken to the drone in order for the call to be sent out. A *"YES"*(the keyword in question) indicates a human-presence. If no human is present, it might be better to leave the drone to be destroyed in order to save human lives.
 
 ### 1.2 Application flow
 
